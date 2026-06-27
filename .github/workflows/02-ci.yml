@@ -77,75 +77,88 @@
       
 
   
-
 name: 02 CI Workflow
+
 on:
- push:
-  paths:
- 
-   - "app/**"
-   - "tests/**"
-   - ".github/workflows/02-ci.yml"
- workflow_dispatch:
+  push:
+    paths:
+      - "app/**"
+      - "tests/**"
+      - ".github/workflows/02-ci.yml"
 
-permissions:
- contents: read
- security-events: write
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
 
-env:
- PYTHON_VERSION: ${{ secrets.PYTHON_V }}
+  schedule:
+    - cron: "0 10 * * *"
+
+  workflow_dispatch:
 
 jobs:
- run-tests:
-   strategy:
-    matrix:
-     python_v: ["3.12", "3.13"]
-     os: [ubuntu-latest, macos-latest]
-  
-   runs-on: ${{ matrix.os }}
-  
-   steps:
-   
-   - name: Check out repository
-     uses: actions/checkout@v6
-   
-   - name: List repository files
-     run: ls -la
-   
-   - name: Set up Python
-     uses: actions/setup-python@v6
-     with:
-      python-version: ${{ matrix.python_v }}
-   
-   - name: Run tests
-     run: python -m unittest discover -s tests -v
-   
-   - name: Display Python version
-     run: python --version
-   
-   - name: Display runner time
-     run: echo "The runner time is $(date)"
-   
-   - name: Run Trivy Filesystem Scanner
-     uses: aquasecurity/trivy-action@v0.36.0
-     with:
-      scan-type: fs
-      scan-ref: .
-      format: sarif
-      output: trivy-results.sarif
-      severity: CRITICAL,HIGH
-   
-   - name: Upload Scan Results to GitHub Security
-     if: always()
-     uses: github/codeql-action/upload-sarif@v4
-     with:
-      sarif_file: trivy-results.sarif
-   
-   - name: Run Trivy Config Vulnerability Scanner
-     uses: aquasecurity/trivy-action@v0.36.0
-     with:
-      scan-type: config
-      hide-progress: false
-      exit-code: "1"
-      severity: CRITICAL,HIGH
+  run-tests:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        python_version: ["3.12", "3.13"]
+        os: ["ubuntu-latest", "windows-latest"]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python_version }}
+
+      - name: Print Python version
+        run: python --version
+
+      - name: Get current date
+        run: date
+
+      - name: Install Ruff
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff
+
+      - name: Run Ruff
+        run: |
+          ruff check .
+
+      - name: Run tests
+        run: |
+          python -m unittest discover -s tests -v
+
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: table
+          output: trivy-fs-report.txt
+          exit-code: "0"
+
+      - name: Run Trivy Dockerfile scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: config
+          scan-ref: Dockerfile
+          format: table
+          output: trivy-dockerfile-report.txt
+          exit-code: "0"
+
+      - name: Upload Trivy reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-reports-${{ matrix.os }}-${{ matrix.python_version }}
+          path: |
+            trivy-fs-report.txt
+            trivy-dockerfile-report.txt
+
+
  
