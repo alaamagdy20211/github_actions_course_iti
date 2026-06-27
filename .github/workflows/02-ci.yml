@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
 env:
   # Keep common image values in one place so the build steps stay readable.
-  PYTHON_VERSION: "3.12"
+  PYTHON_VERSION:  ${{ secrets.PYTHON_V}}
 
 jobs:
   run-tests:
