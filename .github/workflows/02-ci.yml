@@ -50,18 +50,26 @@ jobs:
 
       - name: Get Current Runner Time
         run: echo "The runner time is $(date)"
-        
-      - name: Run Trivy vulnerability scan on filesystem
-        uses: aquasecurity/trivy-action@master
+      - name: Run Trivy Filesystem Scanner
+        uses: aquasecurity/trivy-action@v0.36.0 # Use an explicit, verified version
         with:
           scan-type: 'fs'
           scan-ref: '.'
           format: 'sarif'
-          output: 'trivy-fs-results.sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
 
-      - name: Upload Trivy results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v2
+      - name: Upload Scan Results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always() # Ensures results upload even if vulnerabilities are found
         with:
-          sarif_file: |
-            trivy-image-results.sarif
-            trivy-fs-results.sarif
+          sarif_file: 'trivy-results.sarif'
+      - name: Run Trivy config vulnerability scanner
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: 'config'
+          hide-progress: false
+          exit-code: '1' # Fails the pipeline if issues are found
+          severity: 'CRITICAL,HIGH'
+        
+
