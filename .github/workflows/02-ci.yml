@@ -1,77 +1,151 @@
-# This is the first real CI workflow in the course.
-# It verifies a change by running tests on a fresh runner.
-name: 02 CI Workflow
+# # This is the first real CI workflow in the course.
+# # It verifies a change by running tests on a fresh runner.
+# name: 02 CI Workflow
 
-on:
-  # Run automatically when app code, tests, or this workflow file changes.
-  push:
-    # - cron:  '0 10 * * *'
-    paths:
-      - "app/**"
-      - "tests/**"
-      - ".github/workflows/02-ci.yml"
-  # Allow a safe manual run before students trigger it with a code change.
-  workflow_dispatch:
-env:
-  # Keep common image values in one place so the build steps stay readable.
-  PYTHON_VERSION:  ${{ secrets.PYTHON_V}}
+# on:
+#   # Run automatically when app code, tests, or this workflow file changes.
+#   push:
+#     # - cron:  '0 10 * * *'
+#     paths:
+#       - "app/**"
+#       - "tests/**"
+#       - ".github/workflows/02-ci.yml"
+#   # Allow a safe manual run before students trigger it with a code change.
+#   workflow_dispatch:
+#   permissions:
+#     contents: read
+#     security-events: write
+# env:
+#   # Keep common image values in one place so the build steps stay readable.
+#   PYTHON_VERSION:  ${{ secrets.PYTHON_V}}
 
-jobs:
-  run-tests:
-    # The runner is the temporary machine that executes the steps below.
-    strategy:
-      matrix:
-        python_v: ["3.12", "3.13"]
-        os: [ubuntu-latest, macos-latest]
-    runs-on: ${{ matrix.os}}
+# jobs:
+#   run-tests:
+#     # The runner is the temporary machine that executes the steps below.
+#     strategy:
+#       matrix:
+#         python_v: ["3.12", "3.13"]
+#         os: [ubuntu-latest, macos-latest]
+#     runs-on: ${{ matrix.os}}
 
 
-    steps:
-      - name: Check out repository
-        # Download the repository contents onto the runner.
-        uses: actions/checkout@v6
+#     steps:
+#       - name: Check out repository
+#         # Download the repository contents onto the runner.
+#         uses: actions/checkout@v6
 
-      - name: gets files
-        run: ls -la
+#       - name: gets files
+#         run: ls -la
 
-      - name: Set up Python
-        # Prepare Python on the runner. This does not change the student laptop.
-        uses: actions/setup-python@v6
-        with:
-          python-version: ${{ matrix.python_v}}
+#       - name: Set up Python
+#         # Prepare Python on the runner. This does not change the student laptop.
+#         uses: actions/setup-python@v6
+#         with:
+#           python-version: ${{ matrix.python_v}}
 
-      - name: Run tests
-        # This is the key verification step in the CI workflow.
-        run: python -m unittest discover -s tests -v
+#       - name: Run tests
+#         # This is the key verification step in the CI workflow.
+#         run: python -m unittest discover -s tests -v
 
-      - name: get python ${{ matrix.python_v}}
-        # This is the key verification step in the CI workflow.
-        run: python --version
-      - name: Run Trivy Filesystem Scanner
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-         scan-type: fs
-         scan-ref: .
-         format: sarif
-         output: trivy-results.sarif
-         severity: CRITICAL,HIGH
+#       - name: get python ${{ matrix.python_v}}
+#         # This is the key verification step in the CI workflow.
+#         run: python --version
+#       - name: Run Trivy Filesystem Scanner
+#         uses: aquasecurity/trivy-action@v0.36.0
+#         with:
+#          scan-type: fs
+#          scan-ref: .
+#          format: sarif
+#          output: trivy-results.sarif
+#          severity: CRITICAL,HIGH
 
-      - name: Upload Scan Results to GitHub Security
-        if: always()
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-         sarif_file: trivy-results.sarif
+#       - name: Upload Scan Results to GitHub Security
+#         if: always()
+#         uses: github/codeql-action/upload-sarif@v4
+#         with:
+#          sarif_file: trivy-results.sarif
 
-      - name: Run Trivy Config Vulnerability Scanner
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-         scan-type: config
-         hide-progress: false
-         exit-code: "1"
-         severity: CRITICAL,HIGH
+#       - name: Run Trivy Config Vulnerability Scanner
+#         uses: aquasecurity/trivy-action@v0.36.0
+#         with:
+#          scan-type: config
+#          hide-progress: false
+#          exit-code: "1"
+#          severity: CRITICAL,HIGH
 
 
       
 
   
 
+name: 02 CI Workflow
+on:
+ push:
+  paths:
+ 
+   - "app/**"
+   - "tests/**"
+   - ".github/workflows/02-ci.yml"
+ workflow_dispatch:
+
+permissions:
+ contents: read
+ security-events: write
+
+env:
+ PYTHON_VERSION: ${{ secrets.PYTHON_V }}
+
+jobs:
+ run-tests:
+   strategy:
+    matrix:
+     python_v: ["3.12", "3.13"]
+     os: [ubuntu-latest, macos-latest]
+  
+   runs-on: ${{ matrix.os }}
+  
+   steps:
+   
+   - name: Check out repository
+     uses: actions/checkout@v6
+   
+   - name: List repository files
+     run: ls -la
+   
+   - name: Set up Python
+     uses: actions/setup-python@v6
+     with:
+      python-version: ${{ matrix.python_v }}
+   
+   - name: Run tests
+     run: python -m unittest discover -s tests -v
+   
+   - name: Display Python version
+     run: python --version
+   
+   - name: Display runner time
+     run: echo "The runner time is $(date)"
+   
+   - name: Run Trivy Filesystem Scanner
+     uses: aquasecurity/trivy-action@v0.36.0
+     with:
+      scan-type: fs
+      scan-ref: .
+      format: sarif
+      output: trivy-results.sarif
+      severity: CRITICAL,HIGH
+   
+   - name: Upload Scan Results to GitHub Security
+     if: always()
+     uses: github/codeql-action/upload-sarif@v4
+     with:
+      sarif_file: trivy-results.sarif
+   
+   - name: Run Trivy Config Vulnerability Scanner
+     uses: aquasecurity/trivy-action@v0.36.0
+     with:
+      scan-type: config
+      hide-progress: false
+      exit-code: "1"
+      severity: CRITICAL,HIGH
+ 
