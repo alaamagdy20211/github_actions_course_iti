@@ -20,6 +20,9 @@ jobs:
   run-tests:
     # The runner is the temporary machine that executes the steps below.
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python_v: ["3.12", "3.13"]
 
     steps:
       - name: Check out repository
@@ -33,13 +36,13 @@ jobs:
         # Prepare Python on the runner. This does not change the student laptop.
         uses: actions/setup-python@v6
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python_v}}
 
       - name: Run tests
         # This is the key verification step in the CI workflow.
         run: python -m unittest discover -s tests -v
 
-      - name: get python  ${{ env.PYTHON_VERSION }}
+      - name: get python ${{ matrix.python_v}}
         # This is the key verification step in the CI workflow.
         run: python --version
 
