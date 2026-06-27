@@ -47,29 +47,31 @@ jobs:
       - name: get python ${{ matrix.python_v}}
         # This is the key verification step in the CI workflow.
         run: python --version
-
-      - name: Get Current Runner Time
-        run: echo "The runner time is $(date)"
       - name: Run Trivy Filesystem Scanner
-        uses: aquasecurity/trivy-action@v0.36.0 # Use an explicit, verified version
-        with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH'
-
-      - name: Upload Scan Results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
-        if: always() # Ensures results upload even if vulnerabilities are found
-        with:
-          sarif_file: 'trivy-results.sarif'
-      - name: Run Trivy config vulnerability scanner
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          scan-type: 'config'
-          hide-progress: false
-          exit-code: '1' # Fails the pipeline if issues are found
-          severity: 'CRITICAL,HIGH'
-        
+         scan-type: fs
+         scan-ref: .
+         format: sarif
+         output: trivy-results.sarif
+         severity: CRITICAL,HIGH
+
+      - name: Upload Scan Results to GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+         sarif_file: trivy-results.sarif
+
+      - name: Run Trivy Config Vulnerability Scanner
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+         scan-type: config
+         hide-progress: false
+         exit-code: "1"
+         severity: CRITICAL,HIGH
+
+
+      
+
+  
 
