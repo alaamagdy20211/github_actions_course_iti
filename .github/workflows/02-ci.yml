@@ -4,14 +4,17 @@ name: 02 CI Workflow
 
 on:
   # Run automatically when app code, tests, or this workflow file changes.
-  schedule:
-    - cron:  '0 10 * * *'
-    # paths:
-    #   - "app/**"
-    #   - "tests/**"
-    #   - ".github/workflows/02-ci.yml"
+  push:
+    # - cron:  '0 10 * * *'
+    paths:
+      - "app/**"
+      - "tests/**"
+      - ".github/workflows/02-ci.yml"
   # Allow a safe manual run before students trigger it with a code change.
   workflow_dispatch:
+env:
+  # Keep common image values in one place so the build steps stay readable.
+  PYTHON_VERSION: "3.12"
 
 jobs:
   run-tests:
@@ -36,7 +39,7 @@ jobs:
         # This is the key verification step in the CI workflow.
         run: python -m unittest discover -s tests -v
 
-      - name: get python version
+      - name: get python  ${{ env.PYTHON_VERSION }}
         # This is the key verification step in the CI workflow.
         run: python --version
 
