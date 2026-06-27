@@ -1,9 +1,13 @@
 FROM python:3.12-slim
 
+RUN useradd -m appuser
+
 WORKDIR /app
 
 COPY app ./app
 
-EXPOSE 8000
+RUN chown -R appuser:appuser /app
+
+USER appuser
 
 CMD ["python", "app/app.py"]
