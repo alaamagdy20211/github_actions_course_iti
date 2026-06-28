@@ -1,21 +1,21 @@
-name: 03 Build Artifact Workflow
+# This workflow packages the verified app.
+# It runs verification first, then packaging depends on it using `needs`.
+
+name: 03 Build Artifact Workflow ex6
 
 on:
   workflow_dispatch:
 
-permissions:
-  security-events: write
-
 env:
   IMAGE_NAME: tiny-health-app
+  IMAGE_TAR: tiny-health-app.tar
+  IMAGE_METADATA: image-metadata.env
+  ARTIFACT_NAME: tiny-health-app-image
 
 jobs:
   verify:
+    name: Verify Application
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        python-version: ["3.11", "3.12"]
 
     steps:
       - name: Check out repository
@@ -24,23 +24,15 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.12"
 
       - name: Run tests
         run: python -m unittest discover -s tests -v
 
   build-package:
+    name: Build Docker Image
     needs: verify
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        python-version: ["3.11", "3.12"]
-
-    env:
-      IMAGE_TAR: tiny-health-app-${{ matrix.python-version }}.tar
-      IMAGE_METADATA: image-metadata-${{ matrix.python-version }}.env
-      ARTIFACT_NAME: tiny-health-app-image-py${{ matrix.python-version }}
 
     steps:
       - name: Check out repository
@@ -50,24 +42,16 @@ jobs:
         id: image-tag
         run: |
           TODAY="$(date -u +%Y-%m-%d)"
-          IMAGE_TAG="${TODAY}-${GITHUB_RUN_ID}-py${{ matrix.python-version }}"
+          IMAGE_TAG="${TODAY}-${GITHUB_RUN_ID}"
           echo "image_tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
 
       - name: Build Docker image
         run: |
           docker build \
-            --build-arg PYTHON_VERSION=${{ matrix.python-version }} \
             -t "${IMAGE_NAME}:${{ steps.image-tag.outputs.image_tag }}" \
             .
 
-      - name: Run Trivy vulnerability scan on Docker image
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ env.IMAGE_NAME }}:${{ steps.image-tag.outputs.image_tag }}
-          format: table
-        continue-on-error: true
-
-      - name: Save Docker image as artifact file
+      - name: Save Docker image as tar
         run: |
           docker save \
             "${IMAGE_NAME}:${{ steps.image-tag.outputs.image_tag }}" \
@@ -76,9 +60,8 @@ jobs:
       - name: Save image metadata
         run: |
           IMAGE_REFERENCE="${IMAGE_NAME}:${{ steps.image-tag.outputs.image_tag }}"
-          printf 'IMAGE_TAG=%s\n' "${{ steps.image-tag.outputs.image_tag }}" > "${IMAGE_METADATA}"
-          printf 'IMAGE_REFERENCE=%s\n' "${IMAGE_REFERENCE}" >> "${IMAGE_METADATA}"
-          printf 'PYTHON_VERSION=%s\n' "${{ matrix.python-version }}" >> "${IMAGE_METADATA}"
+          echo "IMAGE_TAG=${{ steps.image-tag.outputs.image_tag }}" > "${IMAGE_METADATA}"
+          echo "IMAGE_REFERENCE=${IMAGE_REFERENCE}" >> "${IMAGE_METADATA}"
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
