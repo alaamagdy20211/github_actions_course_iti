@@ -85,3 +85,37 @@ jobs:
         if: always()
         # Clean up even if an earlier step fails.
         run: docker rm -f "${CONTAINER_NAME}" || true
+
+      - name: Show exact image tag
+        run: |
+         echo "Image tag: ${{ steps.image-metadata.outputs.image_tag }}"
+         echo "Image reference: ${{ steps.image-metadata.outputs.image_reference }}"
+
+      - name: Start container
+        run: |
+          docker run -d \
+            --name "${CONTAINER_NAME}" \
+            -p "${APP_PORT}:8000" \
+            "${{ steps.image-metadata.outputs.image_reference }}"
+      
+      - name: Show running containers
+        run: docker ps
+      
+      - name: Smoke test deployed app
+        run: |
+          for attempt in 1 2 3 4 5; do
+            if RESPONSE=$(curl --fail --silent "http://127.0.0.1:${APP_PORT}/health"); then
+              echo "Health endpoint response:"
+              echo "$RESPONSE"
+              exit 0
+            fi
+      
+            echo "Waiting for app to become ready..."
+            sleep 2
+          done
+      
+          echo "App did not become ready in time."
+          exit 1
+
+
+
